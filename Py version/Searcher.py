@@ -1,4 +1,4 @@
-from .crawler import *
+from crawler import *
 
 import multiprocessing
 import numpy as np
@@ -6,28 +6,31 @@ import pandas as pd
 from gensim import models
 from gensim import corpora
 from gensim.models.keyedvectors import KeyedVectors
-from gensim.models import Phrases
-from gensim.models.fasttext import FastText
-from gensim.models.wrappers.fasttext import FastText as FT_wrapper
-from gensim.models.word2vec import LineSentence
-from gensim.corpora import Dictionary
 from nltk.tokenize import sent_tokenize, word_tokenize
 from stop_words import get_stop_words
-from random import shuffle
-import time
 import re
-import pylab as pl
-from ipywidgets import FloatProgress
-from IPython import display
-import matplotlib.pyplot as plt
 
 
 class Searcher():
+    """This Searcher class clustered all the similarity matching functions needed for the investor selector
+    Variables:
+        _w2v: the word2vector model that can convert each word to a fixed length vector
+        _database: a pandas dataframe that stored the info of each companies, including manually summarized info and crawled info
+                   The last col of _database is used to store the similarity to the input description
+    """
     def __init__(self, w2v=None):
+        """This init usually tasks a while, as it might have to load a very large w2v model, as well as crawling data for a large dataset
+        input:
+            w2v: either a string as the file directory of the interested w2v model, or an already loaded w2v model in the form of KeyedVectors
+
+        process:
+            first a w2v model will be loaded according to the input of w2v
+            then, it will either load a database that is already filled with crawled data, or start to crawl a untouched new dataset"""
+
         # load w2v model
-        if w2v is None:
+        if type(w2v) is str:
             print("start loading w2v, this might take a while")
-            self._w2v = KeyedVectors.load_word2vec_format("../w2v/model/wiki-news-300d-1M.vec")
+            self._w2v = KeyedVectors.load_word2vec_format(w2v)
         else:
             self._w2v = w2v
 
@@ -44,6 +47,10 @@ class Searcher():
         self.process_database()
 
     def process_database(self):
+        """Preprocessing a already crawled database
+        firstly, all the Nan data will be filtered
+        then, tokenize all the relevent texts, i.e. manually summarized texts and crawled texts in the dataset
+        """
         # 1: company name, 5: company website, 6: company manual desc
         raw_texts = []
         # preprocess all the text data and remove any row without any useful data, and segment each word
@@ -75,6 +82,7 @@ class Searcher():
         self._tfidf, self._dictionary = self.get_tfidf_and_dictionary(raw_texts)
 
     def crawl_database(self):
+        """crawl a database with all the target url for each company provided"""
         for row in self._database.itertuples():
             if not (not type(row[1]) is str or (not type(row[2]) is str and not type(row[3]) is str)):
                 # process each website and replace web address with texts crawled
@@ -89,10 +97,15 @@ class Searcher():
                     self._database.iloc[row[0], 1] = texts
 
     def save_database(self):
+        """save database to current directory"""
         self._database.to_csv('crawled_database.csv')
         print("database save successful")
 
     def update_similarity(self, input_text, col=2):
+        """use document vector to calculate the cosine similarity of the text data of each company compared to the input_text
+        input:
+            input_text: the target startup description
+            col: choose to compare similarity against manually summarized info or crawled info of each company"""
         # get input text vector
         input_text_vector = self.get_doc_vector(input_text)
         i = 0
@@ -105,6 +118,11 @@ class Searcher():
         return self._database
 
     def get_doc_vector(self, text):
+        """For the given text input, this function can generate a corresponding document vector
+        input:
+            text: a string
+        algorithm details:
+            This function output a simple tfidf weighted sum of each word vector in the given text"""
         if not text == text:
             return self._w2v['happy'] * 0
         tokens = list(self._dictionary.token2id)
@@ -113,7 +131,7 @@ class Searcher():
         for word in text.split():
             if word in tokens:
                 new_text.append(word)
-            elif word in w2v:  # replace the unknow word with the most similar word in tokens of dictionary
+            elif word in self._w2v:  # replace the unknow word with the most similar word in tokens of dictionary
                 new_text.append(self._w2v.most_similar_to_given(word_list=tokens, w1=word))
 
         # start to calculate vector using tfidf weighted word vector sum
@@ -131,6 +149,10 @@ class Searcher():
         return sum_vector
 
     def word_tokenize_string(self, text):
+        """This fucntion essentially does the preprocessing of string, it will remove stop_words and unknown word in _w2v,
+        and then convert all letters to lower letters
+        input:
+            text: a string"""
         stop_words = get_stop_words('en')  # get too frequent word
         text = text.replace('\r', ' ').replace('\n', ' ')  # remove symbols
         text = re.sub(r"http\S+", "", text)  # remove urls
@@ -141,6 +163,10 @@ class Searcher():
 
     @staticmethod
     def get_tfidf_and_dictionary(texts):
+        """generate dictionary and tfidf model for a given batch of texts
+        input:
+            texts: a list of string"""
+
         # get dictionary of texts
         texts = [text.split() for text in texts]
         dictionary = corpora.Dictionary(texts)
@@ -152,6 +178,11 @@ class Searcher():
         return tfidf, dictionary
 
     def get_text_from_url_and_its_children(self, main_url):
+        """This function crawls the given url, and all the url on the webpage of the given url, and collect all the useful text data
+        input:
+            main_url: the target url
+        algorithm details:
+            multiprocessing is used to simutaneously craw all the children urls on the main url webpage"""
         print("starting to crawl main url: ", main_url)
         # check validity of main_url
         resp = url_is_valid(main_url)

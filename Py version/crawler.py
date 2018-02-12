@@ -2,6 +2,9 @@ from bs4 import BeautifulSoup
 import requests
 
 def get_urls_from_url(main_url):
+    """collect all the urls presented on the webpage of the given url
+    input:
+        main_url: the target url, a string"""
     resp = requests.get(main_url)
     soup = BeautifulSoup(resp.content, 'html.parser')
     urls = []
@@ -16,6 +19,11 @@ def get_urls_from_url(main_url):
     return urls
 
 def get_texts_from_resp(resp):
+    """generate texts from web response
+    input:
+        resp: the object returned by requests.get(a url)
+    output:
+        generate string"""
     # parse the web response
     soup = BeautifulSoup(resp.content, 'html.parser')
     # find and filter texts
@@ -30,6 +38,13 @@ def get_texts_from_resp(resp):
         yield text.text
 
 def url_is_valid(url):
+    """verify whether the given url is leagal and accessible
+    input:
+        url: interested url, a string
+
+    output:
+        if url invalid, return bool: false
+        else: return the resp (to save the effort of accessing the url again)"""
     try:
         resp = requests.get(url, timeout=10)
         assert resp.status_code == 200
@@ -38,6 +53,12 @@ def url_is_valid(url):
         return False
 
 def url_compare(url_target, url_income):
+    """compare how many consecutive letters are identical from the beginning of the input two urls
+    Notice: http and https are considered the same here
+    input:
+        url_target, url_income: string, the urls to be compared
+    output:
+        the number of consecutive letters identical from the beginning"""
     n_same_letter = 0.0
     # delete all http or https
     if url_target[4] == 's':
@@ -58,6 +79,11 @@ def url_compare(url_target, url_income):
     return n_same_letter
 
 def get_text_from_url_with_check(url, main_url):
+    """crawl text data from the given url
+    input:
+        main_url: a string, interested url
+    output:
+        a list of strings"""
     resp = url_is_valid(url)
     if not resp:
         url = main_url + url
