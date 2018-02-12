@@ -8,6 +8,17 @@ The files in this repo is a prototype for our investor selector, implemented in 
 
 There are three files in this repo, including 1. search-engine-on-crawled-data 2. search-engine-on-manual-data 3. try-beautiful-soup
 
+And also a directory called "Py version"
+
+# "Py version"
+There are two .py files in this file, including Search.py and crawler.py
+
+The Search.py transplanted the Searcher class in the jupyter notebook into .py files
+
+The crawler.py transplanted the crawler related functions in the jupyther notebokk into .py file
+
+Both of then are clearly documented, enjoy~
+
 # File 1:
 
 ## Searcher initialization
