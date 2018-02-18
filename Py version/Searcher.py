@@ -17,6 +17,9 @@ class Searcher():
         _w2v: the word2vector model that can convert each word to a fixed length vector
         _database: a pandas dataframe that stored the info of each companies, including manually summarized info and crawled info
                    The last col of _database is used to store the similarity to the input description
+
+    Major function:
+        For similarity searching, use function update_similarity()
     """
     def __init__(self, w2v=None):
         """This init usually tasks a while, as it might have to load a very large w2v model, as well as crawling data for a large dataset
@@ -40,7 +43,7 @@ class Searcher():
             print("load crawled database successful")
         except:
             # if no crawled database given
-            # load the dataset : including only each company's name, url and summary
+            # load the dataset : include only each company's name, url and summary
             print('fail to load crawled database')
             self._database = pd.read_csv("../input/InvestData_2017-Nov-22_0101.csv").iloc[:, [1, 5, 6]]
             self.crawl_database()
