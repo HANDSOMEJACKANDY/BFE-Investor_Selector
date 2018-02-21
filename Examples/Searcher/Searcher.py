@@ -1,4 +1,4 @@
-from crawler import *
+from .crawler import *
 
 import multiprocessing
 import numpy as np
@@ -11,6 +11,10 @@ from stop_words import get_stop_words
 import re
 
 
+def load_w2v(w2v_path):
+    """A function for external usage"""
+    return KeyedVectors.load_word2vec_format(w2v_path)
+
 class Searcher():
     """This Searcher class clustered all the similarity matching functions needed for the investor selector
     Variables:
@@ -21,7 +25,7 @@ class Searcher():
     Major function:
         For similarity searching, use function update_similarity()
     """
-    def __init__(self, w2v=None):
+    def __init__(self, w2v=None, database=None):
         """This init usually tasks a while, as it might have to load a very large w2v model, as well as crawling data for a large dataset
         input:
             w2v: either a string as the file directory of the interested w2v model, or an already loaded w2v model in the form of KeyedVectors
@@ -38,15 +42,14 @@ class Searcher():
             self._w2v = w2v
 
         # get and process database
-        try:
+        if database is None:
             self._database = pd.read_csv('crawled_database.csv').iloc[:, [1, 2, 3]]
             print("load crawled database successful")
-        except:
-            # if no crawled database given
-            # load the dataset : include only each company's name, url and summary
-            print('fail to load crawled database')
-            self._database = pd.read_csv("../input/InvestData_2017-Nov-22_0101.csv").iloc[:, [1, 5, 6]]
-            self.crawl_database()
+        else:
+            # if given an not crawled database
+            self._database = pd.read_csv(database).iloc[:, [1, 5, 6]]
+            print("load raw new database successful")
+        self.crawl_database()
         self.process_database()
 
     def process_database(self):
