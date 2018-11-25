@@ -304,7 +304,9 @@ class TopicModelIndexer():
 
         # get lsi index
         lsi_index = self.lsi[self.tfidf[self.dictionary.doc2bow(text.split())]]
-
+        if len(lsi_index) == 0:
+            return np.zeros(300)
+ 
         # get np.array of index
         lsi_index = np.array(list(zip(*lsi_index))[1])
 
